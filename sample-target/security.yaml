@@ -1,9 +1,31 @@
+application:
+  name: novacore-financial
+  environment: production
+
 tls:
+  enabled: true
   certificate_algorithm: RSA-2048
   signature_algorithm: ECDSA
+  minimum_version: TLS1.2
 
 encryption:
   algorithm: AES-256
+  mode: GCM
 
 hash:
   algorithm: SHA-256
+
+authentication:
+  signature_algorithm: ECDSA
+  key_exchange: ECDH
+
+payments:
+  payment_signature: RSA
+  data_classification: critical
+  confidentiality_years: 10
+  internet_exposed: true
+
+customer_data:
+  classification: high
+  confidentiality_years: 6
+  internet_exposed: false
