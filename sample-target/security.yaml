@@ -1,0 +1,9 @@
+tls:
+  certificate_algorithm: RSA-2048
+  signature_algorithm: ECDSA
+
+encryption:
+  algorithm: AES-256
+
+hash:
+  algorithm: SHA-256
