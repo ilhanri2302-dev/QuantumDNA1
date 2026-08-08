@@ -51,6 +51,10 @@ export default function AssetInspector({
 
         <div className="asset-meta">
           <div className="meta-row">
+            <span className="meta-key">ROLE</span>
+            <span className="meta-value">{group.role}</span>
+          </div>
+          <div className="meta-row">
             <span className="meta-key">FILES / OCCURRENCES</span>
             <span className="meta-value">{group.occurrences.length}</span>
           </div>
@@ -159,18 +163,40 @@ export default function AssetInspector({
         {view === 'migration' && <MigrationSimulation group={group} />}
 
         {view === 'overview' && (
-          <div className="occurrences">
-            <div className="sub-panel-head">
-              <span>DETECTED OCCURRENCES</span>
-            </div>
-            {group.occurrences.map((occ) => (
-              <div className="occurrence" key={occ.id}>
-                <span className="occ-file">{occ.file}</span>
-                <span className="occ-line">L{occ.line}</span>
-                <code className="occ-text">{occ.matchedText}</code>
+          <>
+            <div className="guidance-block">
+              <div className="sub-panel-head">
+                <span>WHY IT MATTERS</span>
               </div>
-            ))}
-          </div>
+              <p className="guidance-text">{group.explanation}</p>
+            </div>
+
+            <div className="guidance-block">
+              <div className="sub-panel-head">
+                <span>MIGRATION GUIDANCE</span>
+                <span className="muted">{group.migrationTarget}</span>
+              </div>
+              <p className="guidance-text">{group.migrationGuidance}</p>
+              {group.migrationPhase && (
+                <span className="mini-badge badge-amber">
+                  {group.migrationPhase}
+                </span>
+              )}
+            </div>
+
+            <div className="occurrences">
+              <div className="sub-panel-head">
+                <span>DETECTED OCCURRENCES</span>
+              </div>
+              {group.occurrences.map((occ) => (
+                <div className="occurrence" key={occ.id}>
+                  <span className="occ-file">{occ.file}</span>
+                  <span className="occ-line">L{occ.line}</span>
+                  <code className="occ-text">{occ.matchedText}</code>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </aside>

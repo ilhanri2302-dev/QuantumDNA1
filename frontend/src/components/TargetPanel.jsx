@@ -3,8 +3,12 @@ export default function TargetPanel({ summary, scanning, error, onScan }) {
     { label: 'FILES SCANNED', value: summary?.files_scanned },
     { label: 'CRYPTO ASSETS', value: summary?.crypto_findings },
     { label: 'QUANTUM VULNERABLE', value: summary?.quantum_vulnerable },
+    { label: 'QUANTUM RESILIENT', value: summary?.quantum_resilient },
+    { label: 'PQ READY', value: summary?.post_quantum },
     { label: 'CRITICAL ASSETS', value: summary?.critical_risk_assets },
   ]
+
+  const overall = summary?.overall_risk
 
   return (
     <aside className="target-panel">
@@ -23,6 +27,17 @@ export default function TargetPanel({ summary, scanning, error, onScan }) {
         {scanning ? 'SEQUENCING…' : 'SEQUENCE SYSTEM'}
       </button>
 
+      {overall && (
+        <div className="overall-risk-row">
+          <span className="meta-key">OVERALL RISK</span>
+          <span
+            className={`mini-badge badge-${overall.toLowerCase()}`}
+          >
+            {overall}
+          </span>
+        </div>
+      )}
+
       <dl className="stat-list">
         {stats.map(({ label, value }) => (
           <div className="stat" key={label}>
@@ -33,6 +48,12 @@ export default function TargetPanel({ summary, scanning, error, onScan }) {
           </div>
         ))}
       </dl>
+
+      {summary?.no_findings && (
+        <p className="panel-note">
+          No cryptographic findings were detected in this target.
+        </p>
+      )}
 
       {error && <p className="panel-error">{error}</p>}
     </aside>

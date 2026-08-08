@@ -25,11 +25,17 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+    "http://localhost:5176",
+    "http://127.0.0.1:5176",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -231,6 +237,27 @@ def scan(request: ScanRequest):
             enrich_finding(finding)
         )
 
+    # Highest risk level across all findings (used for the
+    # overall target posture). Order matters: CRITICAL > HIGH
+    # > MODERATE > LOW. Unknown levels rank as LOW to stay safe.
+    RISK_ORDER = {
+        "LOW": 0,
+        "MODERATE": 1,
+        "HIGH": 2,
+        "CRITICAL": 3,
+    }
+
+    risk_levels = {
+        finding["risk"]["risk_level"]
+        for finding in enriched_findings
+    }
+
+    overall_risk = max(
+        risk_levels,
+        key=lambda level: RISK_ORDER.get(level, 0),
+        default="LOW",
+    )
+
     summary = {
         "path": request.path,
 
@@ -251,6 +278,13 @@ def scan(request: ScanRequest):
             if finding["quantum_vulnerable"]
         ),
 
+        "quantum_resilient": sum(
+            1
+            for finding in enriched_findings
+            if finding["quantum_status"]
+            == "comparatively quantum resilient"
+        ),
+
         "post_quantum": sum(
             1
             for finding in enriched_findings
@@ -262,7 +296,33 @@ def scan(request: ScanRequest):
             for finding in enriched_findings
             if finding["risk"]["risk_level"] == "CRITICAL"
         ),
+
+        "overall_risk": overall_risk,
+
+        "no_findings": len(enriched_findings) == 0,
     }
+
+    response = {
+        "summary": summary,
+
+        "findings": enriched_findings,
+
+        "dependency_graph": {
+            "mode": "DEMO",
+            "description": (
+                "Demonstration dependency graph for the MVP. "
+                "It is not automatically inferred from source code."
+            ),
+        },
+    }
+
+    # An empty target is a valid scan with zero results.
+    if summary["no_findings"]:
+        response["message"] = (
+            "No cryptographic findings were detected in the target."
+        )
+
+    return response
 
     return {
         "summary": summary,

@@ -6,6 +6,10 @@ import TopBar from './components/TopBar.jsx'
 import TargetPanel from './components/TargetPanel.jsx'
 import GenomeVisualization from './components/GenomeVisualization.jsx'
 import AssetInspector from './components/AssetInspector.jsx'
+import InventoryTable from './components/InventoryTable.jsx'
+import CriticalFinding from './components/CriticalFinding.jsx'
+import PostureView from './components/PostureView.jsx'
+import RoadmapView from './components/RoadmapView.jsx'
 
 /** Group scanner findings by algorithm so one node represents one asset. */
 function groupFindings(findings = []) {
@@ -17,6 +21,12 @@ function groupFindings(findings = []) {
         algorithm: f.algorithm,
         category: f.category,
         quantumVulnerable: f.quantum_vulnerable,
+        quantumStatus: f.quantum_status,
+        role: f.role,
+        explanation: f.explanation,
+        migrationGuidance: f.migration_guidance,
+        migrationTarget: f.migration_target,
+        migrationPhase: f.migration_phase,
         confidence: f.confidence ?? 0,
         risk: f.risk,
         hndl: f.hndl,
@@ -114,6 +124,7 @@ export default function App() {
   const [logLines, setLogLines] = useState([])
   const [logIndex, setLogIndex] = useState(0)
   const [error, setError] = useState(null)
+  const [centerTab, setCenterTab] = useState('genome')
   const migrationTimer = useRef(null)
 
   const selectedGroup = useMemo(
@@ -146,6 +157,7 @@ export default function App() {
     setMigrationAlg(null)
     setLogLines([])
     setLogIndex(0)
+    setCenterTab('genome')
 
     try {
       const result = await scanTarget()
@@ -194,14 +206,62 @@ export default function App() {
         {phase === 'error' && <ErrorPanel message={error} onRetry={handleScan} />}
 
         {phase !== 'scanning' && phase !== 'error' && (
-          <GenomeVisualization
-            groups={groups}
-            selectedAlg={selected}
-            onSelect={selectAlgorithm}
-            traceActive={traceActive}
-            migrationAlg={migrationAlg}
-            demoMode={demoMode}
-          />
+          <>
+            <nav className="center-tabs" aria-label="Analysis views">
+              {[
+                ['genome', 'GENOME'],
+                ['inventory', 'INVENTORY'],
+                ['posture', 'POSTURE'],
+                ['roadmap', 'ROADMAP'],
+              ].map(([key, label]) => (
+                <button
+                  type="button"
+                  key={key}
+                  className={`center-tab ${centerTab === key ? 'active' : ''}`}
+                  onClick={() => setCenterTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            {centerTab === 'genome' && (
+              <GenomeVisualization
+                groups={groups}
+                selectedAlg={selected}
+                onSelect={selectAlgorithm}
+                traceActive={traceActive}
+                migrationAlg={migrationAlg}
+                demoMode={demoMode}
+              />
+            )}
+
+            {centerTab === 'inventory' && (
+              <div className="center-scroll">
+                <CriticalFinding
+                  groups={groups}
+                  onSelect={selectAlgorithm}
+                />
+                <InventoryTable
+                  groups={groups}
+                  selectedAlg={selected}
+                  onSelect={selectAlgorithm}
+                />
+              </div>
+            )}
+
+            {centerTab === 'posture' && (
+              <div className="center-scroll">
+                <PostureView groups={groups} onSelect={selectAlgorithm} />
+              </div>
+            )}
+
+            {centerTab === 'roadmap' && (
+              <div className="center-scroll">
+                <RoadmapView />
+              </div>
+            )}
+          </>
         )}
       </main>
 

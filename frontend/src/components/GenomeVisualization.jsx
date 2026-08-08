@@ -111,6 +111,7 @@ export default function GenomeVisualization({
   demoMode,
 }) {
   if (!groups.length) {
+    const scanned = Boolean(demoMode)
     return (
       <div className="genome-empty">
         <svg className="helix-ghost" viewBox={`0 0 ${W} ${H}`}>
@@ -119,9 +120,11 @@ export default function GenomeVisualization({
         </svg>
         <div className="genome-empty-text">
           <span className="empty-glyph">🧬</span>
-          <p>AWAITING GENOME SAMPLE</p>
+          <p>{scanned ? 'NO CRYPTOGRAPHIC FINDINGS' : 'AWAITING GENOME SAMPLE'}</p>
           <span className="muted">
-            Press SEQUENCE SYSTEM to reconstruct the target genome
+            {scanned
+              ? 'The target was sequenced, but no algorithms were detected'
+              : 'Press SEQUENCE SYSTEM to reconstruct the target genome'}
           </span>
         </div>
       </div>

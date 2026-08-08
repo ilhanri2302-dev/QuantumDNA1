@@ -7,9 +7,12 @@ import os
 import re
 from pathlib import Path
 
+from crypto_knowledge import get_algorithm_info, migration_direction
+
 
 SUPPORTED_EXTENSIONS = {
     ".py", ".js", ".jsx", ".ts", ".tsx", ".java",
+    ".cpp", ".c", ".h", ".hpp",
     ".json", ".yaml", ".yml", ".xml", ".pem",
     ".conf", ".cfg", ".txt"
 }
@@ -27,44 +30,45 @@ SKIP_DIRECTORIES = {
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
 
+# Detection patterns only. Classification metadata (category,
+# role, quantum status, guidance) lives in crypto_knowledge.py.
 ALGORITHMS = [
     # Quantum-vulnerable asymmetric cryptography
-    ("RSA-4096", "ASYMMETRIC", r"\bRSA-4096\b", True, 0.99),
-    ("RSA-3072", "ASYMMETRIC", r"\bRSA-3072\b", True, 0.99),
-    ("RSA-2048", "ASYMMETRIC", r"\bRSA-2048\b", True, 0.99),
-    ("RSA", "ASYMMETRIC", r"\bRSA\b(?!-\d{3,4})", True, 0.90),
+    ("RSA-4096", r"\bRSA-4096\b", 0.99),
+    ("RSA-3072", r"\bRSA-3072\b", 0.99),
+    ("RSA-2048", r"\bRSA-2048\b", 0.99),
+    ("RSA", r"\bRSA\b(?!-\d{3,4})", 0.90),
 
-    ("ECDSA", "DIGITAL_SIGNATURE", r"\bECDSA\b", True, 0.99),
-    ("ECDH", "KEY_ESTABLISHMENT", r"\bECDH\b", True, 0.98),
-    ("DH", "KEY_ESTABLISHMENT", r"\bDH\b", True, 0.85),
-    ("DSA", "DIGITAL_SIGNATURE", r"(?<!ML-)\bDSA\b", True, 0.95),
+    ("ECDSA", r"\bECDSA\b", 0.99),
+    ("ECDH", r"\bECDH\b", 0.98),
+    ("DH", r"\bDH\b", 0.85),
+    ("DSA", r"(?<!ML-)\bDSA\b", 0.95),
 
     # Symmetric cryptography
-    ("AES-256", "SYMMETRIC", r"\bAES[-_]?256\b", False, 0.98),
-    ("AES-128", "SYMMETRIC", r"\bAES[-_]?128\b", False, 0.98),
+    ("AES-256", r"\bAES[-_]?256\b", 0.98),
+    ("AES-128", r"\bAES[-_]?128\b", 0.98),
+    ("AES", r"\bAES\b(?![-_]?\d{3})", 0.90),
 
     # Hashing
-    ("SHA-1", "HASH", r"\bSHA[-_]?1\b", False, 0.99),
-    ("SHA-256", "HASH", r"\bSHA[-_]?256\b", False, 0.99),
-    ("SHA-384", "HASH", r"\bSHA[-_]?384\b", False, 0.99),
-    ("SHA-512", "HASH", r"\bSHA[-_]?512\b", False, 0.99),
+    ("SHA-1", r"\bSHA[-_]?1\b", 0.99),
+    ("SHA-256", r"\bSHA[-_]?256\b", 0.99),
+    ("SHA-384", r"\bSHA[-_]?384\b", 0.99),
+    ("SHA-512", r"\bSHA[-_]?512\b", 0.99),
 
     # Post-quantum cryptography
-    ("ML-KEM", "POST_QUANTUM", r"\bML[-_]?KEM\b", False, 0.98),
-    ("ML-DSA", "POST_QUANTUM", r"\bML[-_]?DSA\b", False, 0.98),
-    ("SLH-DSA", "POST_QUANTUM", r"\bSLH[-_]?DSA\b", False, 0.98),
+    ("ML-KEM", r"\bML[-_]?KEM\b", 0.98),
+    ("ML-DSA", r"\bML[-_]?DSA\b", 0.98),
+    ("SLH-DSA", r"\bSLH[-_]?DSA\b", 0.98),
 ]
 
 
 COMPILED_ALGORITHMS = [
     (
         name,
-        category,
         re.compile(pattern, re.IGNORECASE),
-        vulnerable,
         confidence
     )
-    for name, category, pattern, vulnerable, confidence in ALGORITHMS
+    for name, pattern, confidence in ALGORITHMS
 ]
 
 
@@ -150,9 +154,7 @@ def scan_directory(root: str | Path) -> list[dict]:
 
             for (
                 name,
-                category,
                 pattern,
-                vulnerable,
                 confidence
             ) in COMPILED_ALGORITHMS:
 
@@ -162,6 +164,9 @@ def scan_directory(root: str | Path) -> list[dict]:
                     continue
 
                 matched_text = match.group(0)
+
+                info = get_algorithm_info(name)
+                direction = migration_direction(name)
 
                 findings.append({
                     "id": create_finding_id(
@@ -174,9 +179,15 @@ def scan_directory(root: str | Path) -> list[dict]:
                     "file": relative_path,
                     "line": line_number,
                     "matched_text": matched_text,
-                    "category": category,
-                    "quantum_vulnerable": vulnerable,
-                    "confidence": confidence
+                    "category": info["category"],
+                    "quantum_vulnerable": info["quantum_vulnerable"],
+                    "quantum_status": info["quantum_status"],
+                    "role": info["role"],
+                    "explanation": info["explanation"],
+                    "migration_guidance": info["migration_guidance"],
+                    "migration_target": direction["target"],
+                    "migration_phase": direction["phase"],
+                    "confidence": confidence,
                 })
 
     return findings
